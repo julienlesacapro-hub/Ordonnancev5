@@ -7,7 +7,7 @@
    Après chaque modification d'index.html, incrémenter VERSION ci-dessous :
    c'est ce qui déclenche la proposition de mise à jour sur les appareils. */
 
-const VERSION = 'lesacaordo-v3';
+const VERSION = 'lesacaordo-v4';
 
 const FICHIERS = [
   './',
