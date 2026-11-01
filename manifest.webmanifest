@@ -1,8 +1,8 @@
 {
   "id": "./",
-  "name": "Ordonnances & Courriers — SMHEP",
-  "short_name": "Ordonnances",
-  "description": "Générateur d'ordonnances et de courriers médicaux — SMHEP, HNIA Sainte-Anne.",
+  "name": "LeSacAOrdo",
+  "short_name": "LeSacAOrdo",
+  "description": "LeSacAOrdo — générateur d'ordonnances et de courriers médicaux — SMHEP, HNIA Sainte-Anne. © 2026 LESACA Julien — Tous droits réservés.",
   "lang": "fr",
   "dir": "ltr",
   "start_url": "./",

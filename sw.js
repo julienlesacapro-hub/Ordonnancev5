@@ -1,4 +1,5 @@
-/* Service worker — Ordonnances & Courriers SMHEP
+/* Service worker — LeSacAOrdo
+   © 2026 LESACA Julien — Tous droits réservés.
    Stratégie : réseau d'abord pour le document (afin de récupérer les mises à
    jour), cache d'abord pour les ressources fixes. Tout est pré-enregistré à
    l'installation, l'application fonctionne donc entièrement hors connexion.
@@ -6,7 +7,7 @@
    Après chaque modification d'index.html, incrémenter VERSION ci-dessous :
    c'est ce qui déclenche la proposition de mise à jour sur les appareils. */
 
-const VERSION = 'smhep-v2';
+const VERSION = 'lesacaordo-v4';
 
 const FICHIERS = [
   './',
@@ -15,7 +16,8 @@ const FICHIERS = [
   './icon-192.png',
   './icon-512.png',
   './icon-maskable.png',
-  './icon-180.png'
+  './icon-180.png',
+  './logo-lesacaordo.png'
 ];
 
 self.addEventListener('install', function(e){
