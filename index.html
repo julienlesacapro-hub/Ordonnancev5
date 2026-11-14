@@ -311,7 +311,7 @@ button.ghost{background:var(--soft);border-color:#cbdcf2;color:var(--accent);fon
     </div>
     <div class="row">
       <div><label>NOM</label><input type="text" id="nom" autocomplete="off" autocapitalize="characters"></div>
-      <div><label>Prénom</label><input type="text" id="prenom" autocomplete="off"></div>
+      <div><label>Prénom</label><input type="text" id="prenom" autocomplete="off" autocapitalize="words"></div>
     </div>
   </fieldset>
 
@@ -1114,8 +1114,8 @@ function buildForm(){
 function readForm(){
   const civ = $('civilite').value;
   const f = (civ !== 'Mr');
-  const nom = ($('nom').value||'').trim().toUpperCase();
-  const prenom = ($('prenom').value||'').trim();
+  const nom = formatNom(($('nom').value||'').trim());
+  const prenom = formatPrenom(($('prenom').value||'').trim());
   const identite = [civ, nom, prenom].filter(Boolean).join(' ') || '……';
   const sig = SIGNATAIRES.find(s=>s.id===$('signataire').value) || SIGNATAIRES[0];
   const ddnIso = isoDepuisFr($('ddn').value);
@@ -1939,8 +1939,25 @@ document.addEventListener('click', function(ev){
 
 const CHAMPS_DATE = {ddn:'ddnPick', dateDoc:'dateDocPick'};
 
+/* NOM toujours en majuscules ; Prénom avec une majuscule au début de chaque
+   partie (Jean-Pierre, Marie Hélène), le reste en minuscules. */
+function formatNom(v){ return String(v||'').toLocaleUpperCase('fr-FR'); }
+function formatPrenom(v){
+  return String(v||'').toLocaleLowerCase('fr-FR')
+    .replace(/(^|[\s'\u2019-])(\p{L})/gu, (m,sep,c)=>sep+c.toLocaleUpperCase('fr-FR'));
+}
+function appliquerFormat(champ, fn){
+  const v = fn(champ.value);
+  if(v === champ.value) return;
+  const deb = champ.selectionStart, fin = champ.selectionEnd;
+  champ.value = v;
+  if(deb !== null && document.activeElement === champ) champ.setSelectionRange(deb, fin);
+}
+
 document.addEventListener('input', function(ev){
   const t = ev.target;
+  if(t.id === 'nom') appliquerFormat(t, formatNom);
+  if(t.id === 'prenom') appliquerFormat(t, formatPrenom);
   if(CHAMPS_DATE[t.id]){
     masquerDate(t);
     const iso = isoDepuisFr(t.value);
