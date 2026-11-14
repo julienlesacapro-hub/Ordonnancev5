@@ -546,7 +546,7 @@ button.ghost{background:var(--soft);border-color:#cbdcf2;color:var(--accent);fon
     <button type="button" class="primary" id="btnInstall">Installer l'application</button>
   </fieldset>
 
-  <p id="copyright">LeSacAOrdo — © 2026 LESACA Julien — Tous droits réservés</p>
+  <p id="copyright">LeSacAOrdo — © 2026 LESACA Julien — Tous droits réservés<span id="versionApp"></span></p>
 
 </div><!-- /formPane -->
 
@@ -636,8 +636,19 @@ function nomFichierPdf(){
     .filter(Boolean).join('_');
 }
 const TITRE_APP = document.title;
+/* Version installée (nom du cache du service worker), affichée en pied de page. */
+if('caches' in window){
+  caches.keys().then(k=>{
+    const v = k.filter(n=>/^lesacaordo-v\d+$/.test(n)).sort().pop();
+    if(v) $('versionApp').textContent = ' — version ' + v.replace('lesacaordo-','');
+  }).catch(()=>{});
+}
 window.addEventListener('beforeprint', ()=>{ document.title = nomFichierPdf(); });
-window.addEventListener('afterprint', ()=>{ document.title = TITRE_APP; });
+/* Pas de restauration sur « afterprint » : sur Android, window.print() rend la
+   main tout de suite et afterprint peut survenir avant l'enregistrement du
+   PDF, ce qui remettait le titre d'origine comme nom de fichier. Le titre est
+   restauré à la saisie suivante ou à l'effacement du formulaire. */
+function restaurerTitre(){ if(document.title !== TITRE_APP) document.title = TITRE_APP; }
 
 function isoDepuisFr(fr){
   const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(fr||'').trim());
@@ -1895,7 +1906,7 @@ document.addEventListener('click', function(ev){
       ajusterZoom();
       window.scrollTo(0,0);
       break;
-    case 'btnPdf': $('dial').classList.add('on'); break;
+    case 'btnPdf': document.title = nomFichierPdf(); $('dial').classList.add('on'); break;
     case 'dialChrome':
       $('dial').classList.remove('on');
       window.open(location.href, '_blank');
@@ -1918,6 +1929,7 @@ document.addEventListener('click', function(ev){
       setTimeout(()=>window.print(), 120);
       break;
     case 'btnReset':
+      restaurerTitre();
       if(!confirm('Effacer le patient et tout le contenu saisi ?')) return;
       ['nom','prenom','ddn','medicMention','bioIndication',
        'kineTexte','kineSeances','kineRythme','kineIndication',
@@ -1956,6 +1968,7 @@ function appliquerFormat(champ, fn){
 
 document.addEventListener('input', function(ev){
   const t = ev.target;
+  restaurerTitre();
   if(t.id === 'nom') appliquerFormat(t, formatNom);
   if(t.id === 'prenom') appliquerFormat(t, formatPrenom);
   if(CHAMPS_DATE[t.id]){

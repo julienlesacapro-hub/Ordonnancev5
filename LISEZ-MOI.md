@@ -170,7 +170,7 @@ Deux voies, dans cet ordre de fiabilité :
 ## Publier une mise à jour
 
 1. Modifiez `index.html`.
-2. Dans `sw.js`, incrémentez la ligne `const VERSION = 'lesacaordo-v7';` → `'lesacaordo-v8'`.
+2. Dans `sw.js`, incrémentez la ligne `const VERSION = 'lesacaordo-v8';` → `'lesacaordo-v9'`.
    Sans ce changement, les appareils continueront de servir l'ancienne copie enregistrée.
 3. Remplacez les deux fichiers sur GitHub.
 
