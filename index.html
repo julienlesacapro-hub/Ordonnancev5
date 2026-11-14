@@ -311,7 +311,7 @@ button.ghost{background:var(--soft);border-color:#cbdcf2;color:var(--accent);fon
     </div>
     <div class="row">
       <div><label>NOM</label><input type="text" id="nom" autocomplete="off" autocapitalize="characters"></div>
-      <div><label>Prénom</label><input type="text" id="prenom" autocomplete="off"></div>
+      <div><label>Prénom</label><input type="text" id="prenom" autocomplete="off" autocapitalize="words"></div>
     </div>
   </fieldset>
 
@@ -619,6 +619,26 @@ function frDepuisIso(iso){
   const p = String(iso||'').split('-');
   return p.length===3 ? p[2]+'/'+p[1]+'/'+p[0] : '';
 }
+/* Nom proposé à l'enregistrement du PDF : aaaammjj_ordonnance_NOM_Prenom
+   (ou _courrier_, _certificat_, _attestation_). Les navigateurs reprennent le titre de la page comme nom
+   de fichier : on le remplace le temps de l'impression. */
+function nettoyerNomFichier(t){
+  return String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^A-Za-z0-9-]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
+}
+function nomFichierPdf(){
+  const iso = isoDepuisFr(($('dateDoc').value||'').trim()) || isoDepuisFr(todayFr());
+  const nom = nettoyerNomFichier($('nom').value).toUpperCase();
+  const pre = nettoyerNomFichier($('prenom').value).toLowerCase()
+    .replace(/(^|-)([a-z])/g,(m,sep,c)=>sep+c.toUpperCase());
+  const type = MODE==='lettre' ? ($('typeLettre').value || 'courrier') : 'ordonnance';
+  return [iso.replace(/-/g,''), type, nom, pre]
+    .filter(Boolean).join('_');
+}
+const TITRE_APP = document.title;
+window.addEventListener('beforeprint', ()=>{ document.title = nomFichierPdf(); });
+window.addEventListener('afterprint', ()=>{ document.title = TITRE_APP; });
+
 function isoDepuisFr(fr){
   const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(fr||'').trim());
   if(!m) return '';
@@ -1094,8 +1114,8 @@ function buildForm(){
 function readForm(){
   const civ = $('civilite').value;
   const f = (civ !== 'Mr');
-  const nom = ($('nom').value||'').trim().toUpperCase();
-  const prenom = ($('prenom').value||'').trim();
+  const nom = formatNom(($('nom').value||'').trim());
+  const prenom = formatPrenom(($('prenom').value||'').trim());
   const identite = [civ, nom, prenom].filter(Boolean).join(' ') || '……';
   const sig = SIGNATAIRES.find(s=>s.id===$('signataire').value) || SIGNATAIRES[0];
   const ddnIso = isoDepuisFr($('ddn').value);
@@ -1894,6 +1914,7 @@ document.addEventListener('click', function(ev){
     case 'dialOk':
       $('dial').classList.remove('on');
       stopDictee();
+      document.title = nomFichierPdf();
       setTimeout(()=>window.print(), 120);
       break;
     case 'btnReset':
@@ -1918,8 +1939,25 @@ document.addEventListener('click', function(ev){
 
 const CHAMPS_DATE = {ddn:'ddnPick', dateDoc:'dateDocPick'};
 
+/* NOM toujours en majuscules ; Prénom avec une majuscule au début de chaque
+   partie (Jean-Pierre, Marie Hélène), le reste en minuscules. */
+function formatNom(v){ return String(v||'').toLocaleUpperCase('fr-FR'); }
+function formatPrenom(v){
+  return String(v||'').toLocaleLowerCase('fr-FR')
+    .replace(/(^|[\s'\u2019-])(\p{L})/gu, (m,sep,c)=>sep+c.toLocaleUpperCase('fr-FR'));
+}
+function appliquerFormat(champ, fn){
+  const v = fn(champ.value);
+  if(v === champ.value) return;
+  const deb = champ.selectionStart, fin = champ.selectionEnd;
+  champ.value = v;
+  if(deb !== null && document.activeElement === champ) champ.setSelectionRange(deb, fin);
+}
+
 document.addEventListener('input', function(ev){
   const t = ev.target;
+  if(t.id === 'nom') appliquerFormat(t, formatNom);
+  if(t.id === 'prenom') appliquerFormat(t, formatPrenom);
   if(CHAMPS_DATE[t.id]){
     masquerDate(t);
     const iso = isoDepuisFr(t.value);
