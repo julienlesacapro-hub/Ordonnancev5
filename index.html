@@ -620,7 +620,7 @@ function frDepuisIso(iso){
   return p.length===3 ? p[2]+'/'+p[1]+'/'+p[0] : '';
 }
 /* Nom proposé à l'enregistrement du PDF : aaaammjj_ordonnance_NOM_Prenom
-   (ou _courrier_). Les navigateurs reprennent le titre de la page comme nom
+   (ou _courrier_, _certificat_, _attestation_). Les navigateurs reprennent le titre de la page comme nom
    de fichier : on le remplace le temps de l'impression. */
 function nettoyerNomFichier(t){
   return String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
@@ -631,7 +631,8 @@ function nomFichierPdf(){
   const nom = nettoyerNomFichier($('nom').value).toUpperCase();
   const pre = nettoyerNomFichier($('prenom').value).toLowerCase()
     .replace(/(^|-)([a-z])/g,(m,sep,c)=>sep+c.toUpperCase());
-  return [iso.replace(/-/g,''), MODE==='lettre' ? 'courrier' : 'ordonnance', nom, pre]
+  const type = MODE==='lettre' ? ($('typeLettre').value || 'courrier') : 'ordonnance';
+  return [iso.replace(/-/g,''), type, nom, pre]
     .filter(Boolean).join('_');
 }
 const TITRE_APP = document.title;
