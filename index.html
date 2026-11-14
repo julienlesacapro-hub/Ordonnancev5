@@ -619,6 +619,25 @@ function frDepuisIso(iso){
   const p = String(iso||'').split('-');
   return p.length===3 ? p[2]+'/'+p[1]+'/'+p[0] : '';
 }
+/* Nom proposé à l'enregistrement du PDF : aaaammjj_ordonnance_NOM_Prenom
+   (ou _courrier_). Les navigateurs reprennent le titre de la page comme nom
+   de fichier : on le remplace le temps de l'impression. */
+function nettoyerNomFichier(t){
+  return String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^A-Za-z0-9-]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
+}
+function nomFichierPdf(){
+  const iso = isoDepuisFr(($('dateDoc').value||'').trim()) || isoDepuisFr(todayFr());
+  const nom = nettoyerNomFichier($('nom').value).toUpperCase();
+  const pre = nettoyerNomFichier($('prenom').value).toLowerCase()
+    .replace(/(^|-)([a-z])/g,(m,sep,c)=>sep+c.toUpperCase());
+  return [iso.replace(/-/g,''), MODE==='lettre' ? 'courrier' : 'ordonnance', nom, pre]
+    .filter(Boolean).join('_');
+}
+const TITRE_APP = document.title;
+window.addEventListener('beforeprint', ()=>{ document.title = nomFichierPdf(); });
+window.addEventListener('afterprint', ()=>{ document.title = TITRE_APP; });
+
 function isoDepuisFr(fr){
   const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(fr||'').trim());
   if(!m) return '';
@@ -1894,6 +1913,7 @@ document.addEventListener('click', function(ev){
     case 'dialOk':
       $('dial').classList.remove('on');
       stopDictee();
+      document.title = nomFichierPdf();
       setTimeout(()=>window.print(), 120);
       break;
     case 'btnReset':
