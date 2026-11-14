@@ -18,8 +18,9 @@ confraternels sur papier à en-tête SMHEP / HNIA Sainte-Anne, et les exporter e
 | `icon-maskable.png` | Icône adaptée aux masques Android (ronde, carrée, goutte…). |
 | `icon-180.png` | Icône pour l'écran d'accueil iOS. |
 | `logo-lesacaordo.png` | Logo LeSacAOrdo en haute définition (1024 × 1024). |
+| `lib/html2canvas.min.js`, `lib/jspdf.umd.min.js` | Bibliothèques (licence MIT) qui fabriquent le PDF dans l'application, avec son nom de fichier. |
 
-Les huit fichiers doivent rester **dans le même répertoire**. Ne pas les renommer :
+Les huit fichiers et le dossier `lib` doivent rester **dans le même répertoire**. Ne pas les renommer :
 `manifest.webmanifest` et `sw.js` sont appelés par leur nom.
 
 ## Pourquoi un hébergement est indispensable
@@ -36,9 +37,10 @@ en ligne, l'application installée se met à jour toute seule.
 
 1. Créez un compte sur `github.com`, puis un dépôt : **New repository**.
    Nom au choix (par exemple `ordonnances`), visibilité **Public**, puis **Create**.
-2. Sur la page du dépôt : **Add file → Upload files**. Sélectionnez les huit fichiers
-   ci-dessus **en une seule fois** (pas le dossier lui-même : les fichiers doivent se
-   trouver à la racine). Validez par **Commit changes**.
+2. Sur la page du dépôt : **Add file → Upload files**. Glissez les huit fichiers
+   ci-dessus et le dossier `lib` **en une seule fois** (pas le dossier parent : les
+   fichiers doivent se trouver à la racine, `lib` comme sous-dossier). Validez par
+   **Commit changes**.
 3. Onglet **Settings → Pages**. Sous *Build and deployment*, choisissez
    *Deploy from a branch*, branche **main**, dossier **/ (root)**, puis **Save**.
 4. Attendez une à deux minutes, rechargez la page : GitHub affiche l'adresse publique,
@@ -60,6 +62,18 @@ Sur iPhone, Safari : **Partager → Sur l'écran d'accueil**. iOS n'expose pas d
 d'installation dans la page.
 
 Après la première ouverture, l'application fonctionne **hors connexion**.
+
+## Enregistrer en PDF
+
+Le bouton **PDF** puis **Enregistrer le PDF** fabrique le document dans l'application
+et l'enregistre dans *Téléchargements* sous le nom
+`aaaammjj_type_NOM_Prenom.pdf` (type : `ordonnance`, `courrier`, `certificat` ou
+`attestation` ; date du document). Le bouton **Partager le PDF…** permet ensuite de
+l'envoyer vers une autre application.
+
+Le PDF contient une image de chaque page (environ 290 ppp) : le texte n'y est pas
+sélectionnable. Pour imprimer, ou pour l'ordonnancier sécurisé pré-imprimé, utilisez
+**Imprimer** dans la même fenêtre : c'est l'ancienne voie, par la fenêtre d'impression.
 
 ## Ordonnance sécurisée
 
@@ -170,7 +184,7 @@ Deux voies, dans cet ordre de fiabilité :
 ## Publier une mise à jour
 
 1. Modifiez `index.html`.
-2. Dans `sw.js`, incrémentez la ligne `const VERSION = 'lesacaordo-v8';` → `'lesacaordo-v9'`.
+2. Dans `sw.js`, incrémentez la ligne `const VERSION = 'lesacaordo-v9';` → `'lesacaordo-v10'`.
    Sans ce changement, les appareils continueront de servir l'ancienne copie enregistrée.
 3. Remplacez les deux fichiers sur GitHub.
 

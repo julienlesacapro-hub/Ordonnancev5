@@ -7,7 +7,7 @@
    Après chaque modification d'index.html, incrémenter VERSION ci-dessous :
    c'est ce qui déclenche la proposition de mise à jour sur les appareils. */
 
-const VERSION = 'lesacaordo-v8';
+const VERSION = 'lesacaordo-v9';
 
 const FICHIERS = [
   './',
@@ -17,7 +17,9 @@ const FICHIERS = [
   './icon-512.png',
   './icon-maskable.png',
   './icon-180.png',
-  './logo-lesacaordo.png'
+  './logo-lesacaordo.png',
+  './lib/html2canvas.min.js',
+  './lib/jspdf.umd.min.js'
 ];
 
 self.addEventListener('install', function(e){
