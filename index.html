@@ -278,6 +278,11 @@ button.ghost{background:var(--soft);border-color:#cbdcf2;color:var(--accent);fon
 #dial ul{margin:0 0 16px;padding-left:20px}
 #dial .actions{display:flex;gap:9px}
 #dial .actions button{flex:1}
+#dial .etat{margin:10px 0 12px;min-height:1em;font-size:13px;color:var(--text)}
+#dial .etat:empty{display:none}
+#dial details{margin-top:4px;border-top:1px solid var(--line);padding-top:10px}
+#dial summary{font-size:13px;color:var(--accent);font-weight:600;cursor:pointer;margin-bottom:10px}
+#dial b#dialNom{word-break:break-all;color:var(--text)}
 </style>
 </head>
 <body>
@@ -563,18 +568,29 @@ button.ghost{background:var(--soft);border-color:#cbdcf2;color:var(--accent);fon
 
 <div id="dial">
   <div class="boite">
-    <h3>Avant d'enregistrer le PDF</h3>
-    <p>Dans la fenêtre d'impression Android :</p>
-    <ul>
-      <li>Destination : <b>Enregistrer au format PDF</b></li>
-      <li>Format : <b>A4</b></li>
-      <li>Marges : <b>Aucune</b></li>
-      <li>Options : cocher <b>Graphiques d'arrière-plan</b></li>
-    </ul>
+    <h3>Enregistrer le PDF</h3>
+    <p>Nom du fichier : <b id="dialNom"></b></p>
     <div class="actions">
       <button type="button" id="dialAnnuler">Annuler</button>
-      <button type="button" class="primary" id="dialOk">Ouvrir l'impression</button>
+      <button type="button" class="primary" id="dialPdf">Enregistrer le PDF</button>
     </div>
+    <p id="dialEtat" class="etat"></p>
+    <div class="actions" id="dialPartageBloc" style="display:none;margin-bottom:9px">
+      <button type="button" id="dialPartager">Partager le PDF…</button>
+    </div>
+    <details id="dialImpr">
+      <summary>Imprimer, ou utiliser l'ordonnancier sécurisé pré-imprimé</summary>
+      <p>Dans la fenêtre d'impression Android :</p>
+      <ul>
+        <li>Destination : <b>Enregistrer au format PDF</b> ou votre imprimante</li>
+        <li>Format : <b>A4</b></li>
+        <li>Marges : <b>Aucune</b></li>
+        <li>Options : cocher <b>Graphiques d'arrière-plan</b></li>
+      </ul>
+      <div class="actions">
+        <button type="button" id="dialOk">Ouvrir l'impression</button>
+      </div>
+    </details>
     <div class="actions" style="margin-top:9px">
       <button type="button" id="dialChrome" style="font-size:13px;font-weight:500">Si rien ne s'ouvre : afficher dans le navigateur</button>
     </div>
@@ -648,6 +664,103 @@ window.addEventListener('beforeprint', ()=>{ document.title = nomFichierPdf(); }
    main tout de suite et afterprint peut survenir avant l'enregistrement du
    PDF, ce qui remettait le titre d'origine comme nom de fichier. Le titre est
    restauré à la saisie suivante ou à l'effacement du formulaire. */
+/* ---------- PDF fabriqué par l'application ----------
+   La fenêtre d'impression d'Android ne reprend pas toujours le titre de la
+   page comme nom de fichier. Le PDF est donc construit ici (html2canvas +
+   jsPDF, copies locales dans lib/ pour fonctionner hors connexion) et
+   enregistré avec son nom exact. */
+const PDF_ECHELLE = 3;          /* ≈ 290 ppp sur une page A4 */
+let dernierPdf = null;          /* {blob, nom} du dernier PDF produit */
+
+function chargerScript(src){
+  return new Promise((ok, ko)=>{
+    if(document.querySelector('script[data-src="'+src+'"]')) return ok();
+    const sc = document.createElement('script');
+    sc.src = src; sc.dataset.src = src;
+    sc.onload = ()=>ok(); sc.onerror = ()=>ko(new Error('Chargement impossible : '+src));
+    document.head.appendChild(sc);
+  });
+}
+
+/* html2canvas ignore object-fit : chaque image est remplacée par un bloc de
+   même taille dont le fond reproduit « contain », centré. */
+function remplacerImages(racine){
+  racine.querySelectorAll('img').forEach(img=>{
+    const r = img.getBoundingClientRect();
+    const cs = getComputedStyle(img);
+    const div = document.createElement('div');
+    div.style.cssText = 'display:inline-block;vertical-align:'+cs.verticalAlign+';width:'+r.width+'px;height:'+r.height+'px;'
+      + 'background:url("'+img.src+'") center/contain no-repeat';
+    img.replaceWith(div);
+  });
+}
+
+async function fabriquerPdf(){
+  await Promise.all([chargerScript('./lib/html2canvas.min.js'), chargerScript('./lib/jspdf.umd.min.js')]);
+  if(document.fonts && document.fonts.ready) await document.fonts.ready;
+  const pages = Array.from(document.querySelectorAll('#preview .page'));
+  if(!pages.length) throw new Error('Aucune page à enregistrer.');
+  const hote = document.createElement('div');
+  hote.style.cssText = 'position:fixed;left:-20000px;top:0;width:'+(210*MM)+'px;background:#fff;pointer-events:none';
+  document.body.appendChild(hote);
+  const pdf = new window.jspdf.jsPDF({unit:'mm', format:'a4', orientation:'portrait', compress:true});
+  try{
+    for(let i=0;i<pages.length;i++){
+      $('dialEtat').textContent = 'Création du PDF… page '+(i+1)+' / '+pages.length;
+      const clone = pages[i].cloneNode(true);
+      clone.style.boxShadow = 'none';
+      hote.appendChild(clone);
+      remplacerImages(clone);
+      const canvas = await html2canvas(clone, {scale:PDF_ECHELLE, backgroundColor:'#ffffff', logging:false});
+      if(i) pdf.addPage('a4','portrait');
+      pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, 210, 296.6, undefined, 'FAST');
+      canvas.width = canvas.height = 0;
+      clone.remove();
+    }
+  } finally { hote.remove(); }
+  pdf.setProperties({title: nomFichierPdf(), creator: 'LeSacAOrdo — © 2026 LESACA Julien'});
+  return pdf.output('blob');
+}
+
+function telecharger(blob, nom){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = nom; a.rel = 'noopener';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 60000);
+}
+
+function peutPartager(blob, nom){
+  try{
+    return !!(navigator.canShare && navigator.canShare({files:[new File([blob], nom, {type:'application/pdf'})]}));
+  }catch(e){ return false; }
+}
+
+async function enregistrerPdf(){
+  const btn = $('dialPdf');
+  btn.disabled = true;
+  $('dialPartageBloc').style.display = 'none';
+  try{
+    const nom = nomFichierPdf() + '.pdf';
+    const blob = await fabriquerPdf();
+    dernierPdf = {blob, nom};
+    telecharger(blob, nom);
+    $('dialEtat').textContent = 'PDF enregistré dans Téléchargements : ' + nom;
+    if(peutPartager(blob, nom)) $('dialPartageBloc').style.display = '';
+  }catch(e){
+    $('dialEtat').textContent = 'Échec de la création du PDF ('+(e && e.message || e)+'). Utilisez « Imprimer » ci-dessous.';
+    $('dialImpr').open = true;
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+async function partagerPdf(){
+  if(!dernierPdf) return;
+  const f = new File([dernierPdf.blob], dernierPdf.nom, {type:'application/pdf'});
+  try{ await navigator.share({files:[f], title:dernierPdf.nom}); }catch(e){ /* partage annulé */ }
+}
+
 function restaurerTitre(){ if(document.title !== TITRE_APP) document.title = TITRE_APP; }
 
 function isoDepuisFr(fr){
@@ -1906,7 +2019,15 @@ document.addEventListener('click', function(ev){
       ajusterZoom();
       window.scrollTo(0,0);
       break;
-    case 'btnPdf': document.title = nomFichierPdf(); $('dial').classList.add('on'); break;
+    case 'btnPdf':
+      document.title = nomFichierPdf();
+      $('dialNom').textContent = nomFichierPdf() + '.pdf';
+      $('dialEtat').textContent = '';
+      $('dialPartageBloc').style.display = 'none';
+      $('dial').classList.add('on');
+      break;
+    case 'dialPdf': enregistrerPdf(); break;
+    case 'dialPartager': partagerPdf(); break;
     case 'dialChrome':
       $('dial').classList.remove('on');
       window.open(location.href, '_blank');
